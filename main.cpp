@@ -1,3 +1,4 @@
+#include <SFML/Audio/Music.hpp>
 #include <SFML/Graphics.hpp>
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/Color.hpp>
@@ -16,6 +17,10 @@
 #include <SFML/Audio.hpp>
 #include <vector>
 #include <format>
+#include <thread>
+#include <chrono>
+#include <future>
+#include <iomanip>
 
 
 /*
@@ -23,6 +28,7 @@ todo:
 Поменять цвет нот
 сделать чтение битмапы с файла
 сделать выход по концу песни
+сделать индикатор длительности трека
 
 */
 
@@ -40,87 +46,165 @@ struct Note {
 	bool isMissed = false;
 };
 
+struct Beatmap {
+	sf::Music music;
+	std::vector<Note> notes;
+
+};
+
+
+
+sf::Font font;
+
+
+
 int score = 0;
+float accuracy = 100.0f;
+int notesTotal = 0;
+int notesPassed = 0;
 int mode = 0;
 
+
+
 const int PERFECT_WINDOW = 20;
-const int GOOD_WINDOW = 100;
-const int MISS_WINDOW = 150;
+const int GOOD_WINDOW = 60;
+const int MISS_WINDOW = 100;
 
 
 
+sf::Clock countdownClock;
+int countdownSeconds = 3;
+
+
+
+void loadFont();
+void startNewGame(Beatmap& beatmap);
 
 int main() {
+
+
+
+
+
 	unsigned  width = 500;
 	unsigned  height = 800;
 	sf::RenderWindow window(sf::VideoMode({width, height}), "VSRG");
 	window.setFramerateLimit(100);
 
 
-	sf::Music music;
-	if (!music.openFromFile("Assets/Music/RN - Joey Valence & Brae.mp3"))
+
+
+
+
+	Beatmap beatmap;
+
+
+
+
+
+
+	if (!beatmap.music.openFromFile("Assets/Music/RN - Joey Valence & Brae.mp3"))
 	{
 		std::cerr << "Error loading music!\n";
 		return -1;
 	}
-
-
-	music.setVolume(5.f);
-
+	beatmap.music.setVolume(5.f);
 
 
 
 
 
+	loadFont();
 
-	sf::Font font;
-	if (!font.openFromFile("Assets/Font/PB Pixel.ttf")) {
-		std::cerr << "Error loading font!\n";
-		return -1;
-	}
 
-	sf::Text text(font, "To start press ENTER", 67);
-	text.setFillColor(sf::Color::Black);
-	text.setPosition({width / 2.0f, height / 2.0f});
 
-	sf::FloatRect textBounds = text.getLocalBounds();
-	text.setOrigin({
+
+
+
+
+
+	sf::Text countdown(font, "3", 100);
+	countdown.setFillColor(sf::Color::Black);
+	countdown.setPosition({width / 2.0f, height / 2.0f});
+
+	sf::FloatRect countdownTextBounds = countdown.getLocalBounds();
+	countdown.setOrigin({
+		countdownTextBounds.position.x + countdownTextBounds.size.x / 2.0f,
+		countdownTextBounds.position.y + countdownTextBounds.size.y / 2.0f
+	});
+
+
+
+
+
+
+
+
+
+
+	sf::Text welcomeText(font, "To start press ENTER", 67);
+	welcomeText.setFillColor(sf::Color::Black);
+	welcomeText.setPosition({width / 2.0f, height / 2.0f});
+
+	sf::FloatRect textBounds = welcomeText.getLocalBounds();
+	welcomeText.setOrigin({
 		textBounds.position.x + textBounds.size.x / 2.0f,
 		textBounds.position.y + textBounds.size.y / 2.0f
 	});
+
+
+
+
+
+
+
+
 
 
 	sf::Text scoreText(font, "Score: 0", 42);
 	scoreText.setFillColor(sf::Color::Black);
 	scoreText.setPosition({30.f, 0.f});
 
+	sf::Text accuracyText(font, "Accuracy: 100.0%", 42);
+	accuracyText.setFillColor(sf::Color::Black);
+	sf::FloatRect accuracyTextBounds = accuracyText.getLocalBounds();
+	accuracyText.setPosition({width - accuracyTextBounds.size.x - 30, 0.f});
 
-	// sf::Texture backgroundTexture;
-	// if (!backgroundTexture.loadFromFile("Assets/Textures/background.png"))
-	// {
-	// 	std::cerr << "Error loading background image!\n";
-	// 	return -1;
-	// }
-	// sf::Sprite backgroundSprite(backgroundTexture);
+
+
+
+
 
 	sf::VertexArray backgroundGradient(sf::PrimitiveType::Triangles, 6);
 
 
-	backgroundGradient[0] = sf::Vertex({0.f, 0.f}, sf::Color(65, 38, 77));
-	backgroundGradient[1] = sf::Vertex({500.f, 0.f}, sf::Color(65, 38, 77));
-	backgroundGradient[2] = sf::Vertex({500.f, 800.f}, sf::Color(205, 66, 72));
+	backgroundGradient[0] = sf::Vertex({0.f, 0.f}, sf::Color(125, 125, 255));
+	backgroundGradient[1] = sf::Vertex({500.f, 0.f}, sf::Color(125, 125, 255));
+	backgroundGradient[2] = sf::Vertex({500.f, 800.f}, sf::Color(8, 35, 176));
 
-	backgroundGradient[3] = sf::Vertex({0.f, 0.f}, sf::Color(65, 38, 77));
-	backgroundGradient[4] = sf::Vertex({500.f, 800.f}, sf::Color(205, 66, 72));
-	backgroundGradient[5] = sf::Vertex({0.f, 800.f}, sf::Color(205, 66, 72));
+	backgroundGradient[3] = sf::Vertex({0.f, 0.f}, sf::Color(125, 125, 255));
+	backgroundGradient[4] = sf::Vertex({500.f, 800.f}, sf::Color(8, 35, 176));
+	backgroundGradient[5] = sf::Vertex({0.f, 800.f}, sf::Color(8, 35, 176));
+
+
+
+
+
+
+
+
+	float columnPositions[4] = { 92.f, 201.f, 307.f, 415.f };
+
+
+
+
+
 
 
 
 
 	float targetCircleRadius = 43.0f;
 	float targetCircleHeight = 705.0f;
-
-	float columnPositions[4] = { 92.f, 201.f, 307.f, 415.f };
 
 	sf::CircleShape targetCircles[4];
 	for(int i = 0; i < 4; ++i){
@@ -133,16 +217,44 @@ int main() {
 
 
 
+
+
+
+
+
+
+
+
+
 	float scrollSpeed = 1.2f;
 	int visibilityWindowMs = 1200;
 
 
+
+
+
+
+
+
+
+	float noteRadius = 40.f;
 	sf::CircleShape noteVisual(targetCircleRadius);
 	noteVisual.setOrigin({targetCircleRadius, targetCircleRadius});
 	noteVisual.setFillColor(sf::Color(0, 0, 0, 128));
 
 
-	std::vector<Note> notes = {
+
+
+
+
+
+
+
+
+
+
+
+	beatmap.notes = {
 		{ 1200, 0, NoteType::Tap, 0 }, { 1800, 3, NoteType::Tap, 0 }, { 2400, 1, NoteType::Tap, 0 }, { 3000, 2, NoteType::Tap, 0 },
 		{ 3600, 0, NoteType::Tap, 0 }, { 4200, 3, NoteType::Tap, 0 }, { 4800, 1, NoteType::Tap, 0 }, { 5100, 2, NoteType::Tap, 0 },
 		{ 5400, 2, NoteType::Tap, 0 }, { 6000, 0, NoteType::Tap, 0 }, { 6000, 3, NoteType::Tap, 0 }, { 6600, 1, NoteType::Tap, 0 },
@@ -218,24 +330,18 @@ int main() {
 		{ 86400, 0, NoteType::Tap, 0 }, { 86400, 3, NoteType::Tap, 0 }, { 87000, 1, NoteType::Tap, 0 }, { 87000, 2, NoteType::Tap, 0 },
 		{ 87600, 0, NoteType::Tap, 0 }, { 87750, 1, NoteType::Tap, 0 }, { 87900, 2, NoteType::Tap, 0 }, { 88050, 3, NoteType::Tap, 0 },
 		{ 88200, 0, NoteType::Tap, 0 }, { 88200, 3, NoteType::Tap, 0 }, { 88800, 1, NoteType::Tap, 0 }, { 88950, 2, NoteType::Tap, 0 },
-		{ 89100, 1, NoteType::Tap, 0 }, { 89400, 3, NoteType::Tap, 0 }, { 90000, 0, NoteType::Tap, 0 }, { 90000, 2, NoteType::Tap, 0 },{ 90600, 1, NoteType::Tap, 0 }, { 90600, 3, NoteType::Tap, 0 }, { 91200, 0, NoteType::Tap, 0 }, { 91500, 1, NoteType::Tap, 0 },{ 91800, 2, NoteType::Tap, 0 }, { 92100, 3, NoteType::Tap, 0 }, { 92400, 0, NoteType::Tap, 0 }, { 92400, 1, NoteType::Tap, 0 },{ 93000, 2, NoteType::Tap, 0 }, { 93000, 3, NoteType::Tap, 0 }, { 93600, 0, NoteType::Tap, 0 }, { 93750, 1, NoteType::Tap, 0 },{ 93900, 2, NoteType::Tap, 0 }, { 94050, 3, NoteType::Tap, 0 }, { 94200, 1, NoteType::Tap, 0 }, { 94200, 2, NoteType::Tap, 0 },{ 94800, 0, NoteType::Tap, 0 }, { 94950, 1, NoteType::Tap, 0 }, { 95100, 2, NoteType::Tap, 0 }, { 95400, 3, NoteType::Tap, 0 },{ 96000, 0, NoteType::Tap, 0 }, { 96000, 3, NoteType::Tap, 0 }, { 96600, 1, NoteType::Tap, 0 }, { 96600, 2, NoteType::Tap, 0 },{ 97200, 0, NoteType::Tap, 0 }, { 97500, 1, NoteType::Tap, 0 }, { 97800, 2, NoteType::Tap, 0 }, { 98100, 3, NoteType::Tap, 0 },{ 98400, 0, NoteType::Tap, 0 }, { 98550, 1, NoteType::Tap, 0 }, { 98700, 2, NoteType::Tap, 0 }, { 98850, 3, NoteType::Tap, 0 },{ 99000, 0, NoteType::Tap, 0 }, { 99000, 3, NoteType::Tap, 0 }, { 99600, 1, NoteType::Tap, 0 }, { 99600, 2, NoteType::Tap, 0 },{ 100200, 0, NoteType::Tap, 0 }, { 100800, 3, NoteType::Tap, 0 }, { 101400, 1, NoteType::Tap, 0 }, { 101700, 2, NoteType::Tap, 0 },{ 102000, 0, NoteType::Tap, 0 }, { 102000, 3, NoteType::Tap, 0 }, { 102600, 1, NoteType::Tap, 0 }, { 102900, 2, NoteType::Tap, 0 },{ 103200, 1, NoteType::Tap, 0 }, { 103500, 2, NoteType::Tap, 0 }, { 103800, 0, NoteType::Tap, 0 }, { 104400, 0, NoteType::Tap, 0 },{ 104400, 3, NoteType::Tap, 0 }, { 105000, 1, NoteType::Tap, 0 }, { 105000, 2, NoteType::Tap, 0 }, { 105600, 0, NoteType::Tap, 0 },{ 105750, 1, NoteType::Tap, 0 }, { 105900, 2, NoteType::Tap, 0 }, { 106050, 3, NoteType::Tap, 0 }, { 106200, 0, NoteType::Tap, 0 },{ 106200, 3, NoteType::Tap, 0 }, { 106800, 1, NoteType::Tap, 0 }, { 106950, 2, NoteType::Tap, 0 }, { 107100, 1, NoteType::Tap, 0 },{ 107400, 3, NoteType::Tap, 0 }, { 108000, 0, NoteType::Tap, 0 }, { 108000, 2, NoteType::Tap, 0 }, { 108600, 1, NoteType::Tap, 0 },{ 108600, 3, NoteType::Tap, 0 }, { 109200, 0, NoteType::Tap, 0 }, { 109500, 1, NoteType::Tap, 0 }, { 109800, 2, NoteType::Tap, 0 },{ 110100, 3, NoteType::Tap, 0 }, { 110400, 0, NoteType::Tap, 0 }, { 110400, 1, NoteType::Tap, 0 }, { 111000, 2, NoteType::Tap, 0 },{ 111000, 3, NoteType::Tap, 0 }, { 111600, 0, NoteType::Tap, 0 }, { 111750, 1, NoteType::Tap, 0 }, { 111900, 2, NoteType::Tap, 0 },{ 112050, 3, NoteType::Tap, 0 }, { 112200, 1, NoteType::Tap, 0 }, { 112200, 2, NoteType::Tap, 0 }, { 112800, 0, NoteType::Tap, 0 },{ 112950, 1, NoteType::Tap, 0 }, { 113100, 2, NoteType::Tap, 0 }, { 113400, 3, NoteType::Tap, 0 }, { 114000, 0, NoteType::Tap, 0 },{ 114000, 3, NoteType::Tap, 0 }, { 114600, 1, NoteType::Tap, 0 }, { 114600, 2, NoteType::Tap, 0 }, { 115200, 0, NoteType::Tap, 0 },{ 115500, 1, NoteType::Tap, 0 }, { 115800, 2, NoteType::Tap, 0 }, { 116100, 3, NoteType::Tap, 0 }, { 116400, 0, NoteType::Tap, 0 },{ 116550, 1, NoteType::Tap, 0 }, { 116700, 2, NoteType::Tap, 0 }, { 116850, 3, NoteType::Tap, 0 }, { 117000, 0, NoteType::Tap, 0 },{ 117000, 3, NoteType::Tap, 0 }, { 117600, 1, NoteType::Tap, 0 }, { 117600, 2, NoteType::Tap, 0 }, { 118200, 0, NoteType::Tap, 0 },{ 118800, 3, NoteType::Tap, 0 }, { 119400, 1, NoteType::Tap, 0 }, { 119700, 2, NoteType::Tap, 0 }, { 120000, 0, NoteType::Tap, 0 },{ 120000, 3, NoteType::Tap, 0 }, { 120600, 1, NoteType::Tap, 0 }, { 120900, 2, NoteType::Tap, 0 }, { 121200, 1, NoteType::Tap, 0 },{ 121500, 2, NoteType::Tap, 0 }, { 121800, 0, NoteType::Tap, 0 }, { 122400, 0, NoteType::Tap, 0 }, { 122400, 3, NoteType::Tap, 0 },{ 123000, 1, NoteType::Tap, 0 }, { 123000, 2, NoteType::Tap, 0 }, { 123600, 0, NoteType::Tap, 0 }, { 123750, 1, NoteType::Tap, 0 },{ 123900, 2, NoteType::Tap, 0 }, { 124050, 3, NoteType::Tap, 0 }, { 124200, 0, NoteType::Tap, 0 }, { 124200, 3, NoteType::Tap, 0 },{ 124800, 1, NoteType::Tap, 0 }, { 124950, 2, NoteType::Tap, 0 }, { 125100, 1, NoteType::Tap, 0 }, { 125400, 3, NoteType::Tap, 0 },{ 126000, 0, NoteType::Tap, 0 }, { 126000, 2, NoteType::Tap, 0 }, { 126600, 1, NoteType::Tap, 0 }, { 126600, 3, NoteType::Tap, 0 },{ 127200, 0, NoteType::Tap, 0 }, { 127500, 1, NoteType::Tap, 0 }, { 127800, 2, NoteType::Tap, 0 }, { 128100, 3, NoteType::Tap, 0 },{ 128400, 0, NoteType::Tap, 0 }, { 128400, 1, NoteType::Tap, 0 }, { 129000, 2, NoteType::Tap, 0 }, { 129000, 3, NoteType::Tap, 0 },{ 129600, 0, NoteType::Tap, 0 }, { 129750, 1, NoteType::Tap, 0 }, { 129900, 2, NoteType::Tap, 0 }, { 130050, 3, NoteType::Tap, 0 },{ 130200, 1, NoteType::Tap, 0 }, { 130200, 2, NoteType::Tap, 0 }, { 130800, 0, NoteType::Tap, 0 }, { 130950, 1, NoteType::Tap, 0 },{ 131100, 2, NoteType::Tap, 0 }, { 131400, 3, NoteType::Tap, 0 }, { 132000, 0, NoteType::Tap, 0 }, { 132000, 3, NoteType::Tap, 0 },{ 132600, 1, NoteType::Tap, 0 }, { 132600, 2, NoteType::Tap, 0 }, { 133200, 0, NoteType::Tap, 0 }, { 133500, 1, NoteType::Tap, 0 },{ 133800, 2, NoteType::Tap, 0 }, { 134100, 3, NoteType::Tap, 0 }, { 134400, 0, NoteType::Tap, 0 }, { 134550, 1, NoteType::Tap, 0 },{ 134700, 2, NoteType::Tap, 0 }, { 134850, 3, NoteType::Tap, 0 }, { 135000, 0, NoteType::Tap, 0 }, { 135000, 3, NoteType::Tap, 0 },{ 135600, 1, NoteType::Tap, 0 }, { 135600, 2, NoteType::Tap, 0 }, { 136200, 0, NoteType::Tap, 0 }, { 136800, 3, NoteType::Tap, 0 },{ 137400, 1, NoteType::Tap, 0 }, { 137700, 2, NoteType::Tap, 0 }, { 138000, 0, NoteType::Tap, 0 }, { 138000, 3, NoteType::Tap, 0 },{ 138600, 1, NoteType::Tap, 0 }, { 138900, 2, NoteType::Tap, 0 }, { 139200, 1, NoteType::Tap, 0 }, { 139500, 2, NoteType::Tap, 0 },{ 139800, 0, NoteType::Tap, 0 },{ 141000, 0, NoteType::Tap, 0 }, { 141000, 1, NoteType::Tap, 0 }, { 141000, 2, NoteType::Tap, 0 }, { 141000, 3, NoteType::Tap, 0 } };
+		{ 89100, 1, NoteType::Tap, 0 }, { 89400, 3, NoteType::Tap, 0 }, { 90000, 0, NoteType::Tap, 0 }, { 90000, 2, NoteType::Tap, 0 },{ 90600, 1, NoteType::Tap, 0 }, { 90600, 3, NoteType::Tap, 0 }, { 91200, 0, NoteType::Tap, 0 }, { 91500, 1, NoteType::Tap, 0 },{ 91800, 2, NoteType::Tap, 0 }, { 92100, 3, NoteType::Tap, 0 }, { 92400, 0, NoteType::Tap, 0 }, { 92400, 1, NoteType::Tap, 0 },{ 93000, 2, NoteType::Tap, 0 }, { 93000, 3, NoteType::Tap, 0 }, { 93600, 0, NoteType::Tap, 0 }, { 93750, 1, NoteType::Tap, 0 },{ 93900, 2, NoteType::Tap, 0 }, { 94050, 3, NoteType::Tap, 0 }, { 94200, 1, NoteType::Tap, 0 }, { 94200, 2, NoteType::Tap, 0 },{ 94800, 0, NoteType::Tap, 0 }, { 94950, 1, NoteType::Tap, 0 }, { 95100, 2, NoteType::Tap, 0 }, { 95400, 3, NoteType::Tap, 0 },{ 96000, 0, NoteType::Tap, 0 }, { 96000, 3, NoteType::Tap, 0 }, { 96600, 1, NoteType::Tap, 0 }, { 96600, 2, NoteType::Tap, 0 },{ 97200, 0, NoteType::Tap, 0 }, { 97500, 1, NoteType::Tap, 0 }, { 97800, 2, NoteType::Tap, 0 }, { 98100, 3, NoteType::Tap, 0 },{ 98400, 0, NoteType::Tap, 0 }, { 98550, 1, NoteType::Tap, 0 }, { 98700, 2, NoteType::Tap, 0 }, { 98850, 3, NoteType::Tap, 0 },{ 99000, 0, NoteType::Tap, 0 }, { 99000, 3, NoteType::Tap, 0 }, { 99600, 1, NoteType::Tap, 0 }, { 99600, 2, NoteType::Tap, 0 },{ 100200, 0, NoteType::Tap, 0 }, { 100800, 3, NoteType::Tap, 0 }, { 101400, 1, NoteType::Tap, 0 }, { 101700, 2, NoteType::Tap, 0 },{ 102000, 0, NoteType::Tap, 0 }, { 102000, 3, NoteType::Tap, 0 }, { 102600, 1, NoteType::Tap, 0 }, { 102900, 2, NoteType::Tap, 0 },{ 103200, 1, NoteType::Tap, 0 }, { 103500, 2, NoteType::Tap, 0 }, { 103800, 0, NoteType::Tap, 0 }, { 104400, 0, NoteType::Tap, 0 },{ 104400, 3, NoteType::Tap, 0 }, { 105000, 1, NoteType::Tap, 0 }, { 105000, 2, NoteType::Tap, 0 }, { 105600, 0, NoteType::Tap, 0 },{ 105750, 1, NoteType::Tap, 0 }, { 105900, 2, NoteType::Tap, 0 }, { 106050, 3, NoteType::Tap, 0 }, { 106200, 0, NoteType::Tap, 0 },{ 106200, 3, NoteType::Tap, 0 }, { 106800, 1, NoteType::Tap, 0 }, { 106950, 2, NoteType::Tap, 0 }, { 107100, 1, NoteType::Tap, 0 },{ 107400, 3, NoteType::Tap, 0 }, { 108000, 0, NoteType::Tap, 0 }, { 108000, 2, NoteType::Tap, 0 }, { 108600, 1, NoteType::Tap, 0 },{ 108600, 3, NoteType::Tap, 0 }, { 109200, 0, NoteType::Tap, 0 }, { 109500, 1, NoteType::Tap, 0 }, { 109800, 2, NoteType::Tap, 0 },{ 110100, 3, NoteType::Tap, 0 }, { 110400, 0, NoteType::Tap, 0 }, { 110400, 1, NoteType::Tap, 0 }, { 111000, 2, NoteType::Tap, 0 },{ 111000, 3, NoteType::Tap, 0 }, { 111600, 0, NoteType::Tap, 0 }, { 111750, 1, NoteType::Tap, 0 }, { 111900, 2, NoteType::Tap, 0 },{ 112050, 3, NoteType::Tap, 0 }, { 112200, 1, NoteType::Tap, 0 }, { 112200, 2, NoteType::Tap, 0 }, { 112800, 0, NoteType::Tap, 0 },{ 112950, 1, NoteType::Tap, 0 }, { 113100, 2, NoteType::Tap, 0 }, { 113400, 3, NoteType::Tap, 0 }, { 114000, 0, NoteType::Tap, 0 },{ 114000, 3, NoteType::Tap, 0 }, { 114600, 1, NoteType::Tap, 0 }, { 114600, 2, NoteType::Tap, 0 }, { 115200, 0, NoteType::Tap, 0 },{ 115500, 1, NoteType::Tap, 0 }, { 115800, 2, NoteType::Tap, 0 }, { 116100, 3, NoteType::Tap, 0 }, { 116400, 0, NoteType::Tap, 0 },{ 116550, 1, NoteType::Tap, 0 }, { 116700, 2, NoteType::Tap, 0 }, { 116850, 3, NoteType::Tap, 0 }, { 117000, 0, NoteType::Tap, 0 },{ 117000, 3, NoteType::Tap, 0 }, { 117600, 1, NoteType::Tap, 0 }, { 117600, 2, NoteType::Tap, 0 }, { 118200, 0, NoteType::Tap, 0 },{ 118800, 3, NoteType::Tap, 0 }, { 119400, 1, NoteType::Tap, 0 }, { 119700, 2, NoteType::Tap, 0 }, { 120000, 0, NoteType::Tap, 0 },{ 120000, 3, NoteType::Tap, 0 }, { 120600, 1, NoteType::Tap, 0 }, { 120900, 2, NoteType::Tap, 0 }, { 121200, 1, NoteType::Tap, 0 },{ 121500, 2, NoteType::Tap, 0 }, { 121800, 0, NoteType::Tap, 0 }, { 122400, 0, NoteType::Tap, 0 }, { 122400, 3, NoteType::Tap, 0 },{ 123000, 1, NoteType::Tap, 0 }, { 123000, 2, NoteType::Tap, 0 }, { 123600, 0, NoteType::Tap, 0 }, { 123750, 1, NoteType::Tap, 0 },{ 123900, 2, NoteType::Tap, 0 }, { 124050, 3, NoteType::Tap, 0 }, { 124200, 0, NoteType::Tap, 0 }, { 124200, 3, NoteType::Tap, 0 },{ 124800, 1, NoteType::Tap, 0 }, { 124950, 2, NoteType::Tap, 0 }, { 125100, 1, NoteType::Tap, 0 }, { 125400, 3, NoteType::Tap, 0 },{ 126000, 0, NoteType::Tap, 0 }, { 126000, 2, NoteType::Tap, 0 }, { 126600, 1, NoteType::Tap, 0 }, { 126600, 3, NoteType::Tap, 0 },{ 127200, 0, NoteType::Tap, 0 }, { 127500, 1, NoteType::Tap, 0 }, { 127800, 2, NoteType::Tap, 0 }, { 128100, 3, NoteType::Tap, 0 },{ 128400, 0, NoteType::Tap, 0 }, { 128400, 1, NoteType::Tap, 0 }, { 129000, 2, NoteType::Tap, 0 }, { 129000, 3, NoteType::Tap, 0 },{ 129600, 0, NoteType::Tap, 0 }, { 129750, 1, NoteType::Tap, 0 }, { 129900, 2, NoteType::Tap, 0 }, { 130050, 3, NoteType::Tap, 0 },{ 130200, 1, NoteType::Tap, 0 }, { 130200, 2, NoteType::Tap, 0 }, { 130800, 0, NoteType::Tap, 0 }, { 130950, 1, NoteType::Tap, 0 },{ 131100, 2, NoteType::Tap, 0 }, { 131400, 3, NoteType::Tap, 0 }, { 132000, 0, NoteType::Tap, 0 }, { 132000, 3, NoteType::Tap, 0 },{ 132600, 1, NoteType::Tap, 0 }, { 132600, 2, NoteType::Tap, 0 }, { 133200, 0, NoteType::Tap, 0 }, { 133500, 1, NoteType::Tap, 0 },{ 133800, 2, NoteType::Tap, 0 }, { 134100, 3, NoteType::Tap, 0 }, { 134400, 0, NoteType::Tap, 0 }, { 134550, 1, NoteType::Tap, 0 },{ 134700, 2, NoteType::Tap, 0 }, { 134850, 3, NoteType::Tap, 0 }, { 135000, 0, NoteType::Tap, 0 }, { 135000, 3, NoteType::Tap, 0 },{ 135600, 1, NoteType::Tap, 0 }, { 135600, 2, NoteType::Tap, 0 }, { 136200, 0, NoteType::Tap, 0 }, { 136800, 3, NoteType::Tap, 0 },{ 137400, 1, NoteType::Tap, 0 }, { 137700, 2, NoteType::Tap, 0 }, { 138000, 0, NoteType::Tap, 0 }, { 138000, 3, NoteType::Tap, 0 },{ 138600, 1, NoteType::Tap, 0 }, { 138900, 2, NoteType::Tap, 0 }, { 139200, 1, NoteType::Tap, 0 }, { 139500, 2, NoteType::Tap, 0 },{ 139800, 0, NoteType::Tap, 0 },{ 141000, 0, NoteType::Tap, 0 }, { 141000, 1, NoteType::Tap, 0 }, { 141000, 2, NoteType::Tap, 0 }, { 141000, 3, NoteType::Tap, 0 }
 
-	// float noteRadius = 43.f;
- //
-	// int noteCount = 5;
- //
-	// std::uint8_t noteTransparency = 128;
- //
-	// sf::Color noteColor(0.f, 0.f, 0.f, noteTransparency);
- //
-	// for(int i = 0; i < noteCount; ++i){
-	// 	sf::CircleShape note(noteRadius);
-	// 	note.setOrigin({note.getRadius(), note.getRadius()});
-	// 	note.setFillColor(noteColor);
-	// 	notes.push_back(note);
-	// }
+	};
 
 
+
+
+
+
+	for (auto& note : beatmap.notes) {
+		++notesTotal;
+	}
 
 
 
@@ -244,14 +350,20 @@ int main() {
 
 	while(window.isOpen()){
 
-		int currentSongTimeInMs = music.getPlayingOffset().asMilliseconds();
+		int currentSongTimeInMs = beatmap.music.getPlayingOffset().asMilliseconds();
 
 
 		while(const std::optional event = window.pollEvent()) {
-			if(event->is<sf::Event::Closed>()){
 
+
+
+			if(event->is<sf::Event::Closed>()){
 				window.close();
 			}
+
+
+
+
 			else if(const auto* keyPressed = event->getIf<sf::Event::KeyPressed>()){
 
 				if(keyPressed->scancode == sf::Keyboard::Scancode::Escape) {
@@ -261,7 +373,10 @@ int main() {
 							break;
 						case 1:
 							mode = 0;
-							music.stop();
+							beatmap.music.stop();
+							break;
+						case 2:
+							mode = 0;
 							break;
 					}
 				}
@@ -280,7 +395,7 @@ int main() {
 
 					if (targetColumn != -1) {
 
-						for (auto& note : notes) {
+						for (auto& note : beatmap.notes) {
 							if (note.column == targetColumn && !note.isHit && !note.isMissed) {
 
 								int timeDiff = std::abs(note.timeMs - currentSongTimeInMs);
@@ -293,7 +408,7 @@ int main() {
 									}
 									else if (timeDiff <= GOOD_WINDOW) {
 										note.isHit = true;
-										score += 150;
+										score += 200;
 										std::cout << "good" << '\n';
 									}
 									else {
@@ -301,18 +416,61 @@ int main() {
 										score += 50;
 										std::cout << "bad" << '\n';
 									}
+									++notesPassed;
 									break;
 								}
 							}
 						}
 					}
 				}
-
-
-
-
 			}
 		}
+
+
+
+
+		if(notesPassed > 0) accuracy = (score / float(notesPassed * 300)) * 100;
+
+
+
+
+		if (mode == 2) {
+			if (countdownClock.getElapsedTime().asSeconds() >= 1.0f) {
+				countdownSeconds--;
+				countdownClock.restart();
+
+				if (countdownSeconds <= 0) {
+					mode = 1;
+					beatmap.music.play();
+				}
+				else {
+					countdown.setString(std::format("{}", countdownSeconds));
+				}
+			}
+		}
+
+
+
+
+
+
+
+
+		if (mode == 0) {
+
+			if(sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::Enter)){
+				startNewGame(beatmap);
+				countdown.setString("3");
+			}
+		}
+
+
+
+
+
+
+
+
 
 
 		for (int i = 0; i < 4; ++i) {
@@ -320,16 +478,8 @@ int main() {
 		}
 
 
-		if (mode == 0) {
 
-			if(sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::Enter)){
-				mode = 1;
-				for(auto& note : notes) { note.isHit = false; note.isMissed = false; }
-				score = 0;
-				music.play();
-			}
-		}
-		else if (mode == 1) {
+		else if (mode == 1 || mode == 2) {
 
 			if(sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::D)){
 				targetCircles[0].setOutlineColor(sf::Color::Green);
@@ -352,48 +502,159 @@ int main() {
 
 
 
+
+
+
 		//render
 		window.clear();
+
+
+
+
+
+
+
+
+
+
+
+
 
 		//drawing
 
 		window.draw(backgroundGradient);
 
-		switch (mode) {
-			case 0:
-				window.draw(text);
 
+
+
+
+		switch (mode) {
+
+
+			case 0:
+				window.draw(welcomeText)ж
 				break;
+
+
+
+
+
+
 
 			case 1:
 
 				scoreText.setString(std::format("Score: {}", score));
+				accuracyText.setString(std::format("Accuracy: {}", std::format("{:.2f}", accuracy)));
+
+
 
 				for(int i = 0; i < 4; ++i){
 					window.draw(targetCircles[i]);
 				}
 
-				for (auto& note : notes) {
+
+
+				for (auto& note : beatmap.notes) {
+
+					int timeRemaining = note.timeMs - currentSongTimeInMs;
+
 					if(!note.isHit){
 
-						int timeRemaining = note.timeMs - currentSongTimeInMs;
 
 						if (timeRemaining <= visibilityWindowMs && timeRemaining >= -MISS_WINDOW) {
 							float noteY = targetCircleHeight - (scrollSpeed * timeRemaining);
 							noteVisual.setPosition({columnPositions[note.column], noteY});
 							window.draw(noteVisual);
 						}
-
 					}
+
+
+
+
+					if (!note.isHit && !note.isMissed) {
+						if (timeRemaining < -MISS_WINDOW) {
+							note.isMissed = true;
+							++notesPassed;
+							std::cout << "Miss" << '\n';
+						}
+					}
+
+
+
+
 				}
+
+
+
+
+				window.draw(accuracyText);
 				window.draw(scoreText);
 
 				break;
+
+
+
+
+
+
+
+
+			case 2:
+				scoreText.setString(std::format("Score: {}", score));
+				accuracyText.setString(std::format("Accuracy: {}%", std::format("{:.2f}", accuracy)));
+
+				for(int i = 0; i < 4; ++i){
+					window.draw(targetCircles[i]);
+				}
+				window.draw(accuracyText);
+				window.draw(scoreText);
+				window.draw(countdown);
+
+
+				break;
 		}
+
+
+
+
+
+
+
+
 
 		window.display();
 	}
 
 
 	return 0;
+}
+
+
+
+
+
+
+
+void loadFont(){
+	if (!font.openFromFile("Assets/Font/PB Pixel.ttf")) {
+		std::cerr << "Error loading font!\n";
+		std::exit(EXIT_FAILURE);
+	}
+}
+
+
+
+
+
+
+void startNewGame(Beatmap& beatmap){
+	for(auto& note : beatmap.notes) { note.isHit = false; note.isMissed = false; }
+	score = 0;
+	accuracy = 100.0f;
+
+	mode = 2;
+	countdownSeconds = 3;
+	countdownClock.restart();
+
+
 }
