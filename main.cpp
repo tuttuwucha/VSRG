@@ -28,7 +28,7 @@ todo:
 Поменять цвет нот
 сделать чтение битмапы с файла
 сделать выход по концу песни
-сделать индикатор длительности трекаа
+сделать индикатор длительности трека
 
 */
 
@@ -479,7 +479,7 @@ int main() {
 
 
 
-		else if (mode == 1 || mode == 2) {
+		if (mode == 1 || mode == 2) {
 
 			if(sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::D)){
 				targetCircles[0].setOutlineColor(sf::Color::Green);
@@ -532,7 +532,7 @@ int main() {
 
 
 			case 0:
-				window.draw(welcomeText)ж
+				window.draw(welcomeText);
 				break;
 
 
