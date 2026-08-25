@@ -11,6 +11,7 @@
 #include <SFML/Graphics/VertexArray.hpp>
 #include <SFML/System/Clock.hpp>
 #include <SFML/System/Vector2.hpp>
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
@@ -32,6 +33,13 @@ todo:
 сделать индикатор длительности трекаа
 
 */
+
+enum GameMode {
+	START_MENU,
+	GAME,
+	COUNTDOWN,
+	MENU
+};
 
 enum class NoteType : uint8_t {
 	Tap,
@@ -63,7 +71,8 @@ int score = 0;
 float accuracy = 100.0f;
 int notesTotal = 0;
 int notesPassed = 0;
-int mode = 0;
+
+enum GameMode gameMode = START_MENU;
 
 
 
@@ -368,16 +377,16 @@ int main() {
 			else if(const auto* keyPressed = event->getIf<sf::Event::KeyPressed>()){
 
 				if(keyPressed->scancode == sf::Keyboard::Scancode::Escape) {
-					switch (mode) {
-						case 0:
+					switch (gameMode) {
+						case START_MENU:
 							window.close();
 							break;
-						case 1:
-							mode = 0;
+						case GAME:
+							gameMode = START_MENU;
 							beatmap.music.stop();
 							break;
-						case 2:
-							mode = 0;
+						case COUNTDOWN:
+							gameMode = START_MENU;
 							break;
 					}
 				}
@@ -385,7 +394,7 @@ int main() {
 
 
 
-				if(mode == 1){
+				if(gameMode == GAME){
 					int targetColumn = -1;
 					if(keyPressed->scancode == sf::Keyboard::Scancode::D) targetColumn = 0;
 					if(keyPressed->scancode == sf::Keyboard::Scancode::F) targetColumn = 1;
@@ -435,13 +444,13 @@ int main() {
 
 
 
-		if (mode == 2) {
+		if (gameMode == COUNTDOWN) {
 			if (countdownClock.getElapsedTime().asSeconds() >= 1.0f) {
 				countdownSeconds--;
 				countdownClock.restart();
 
 				if (countdownSeconds <= 0) {
-					mode = 1;
+					gameMode = GAME;
 					beatmap.music.play();
 				}
 				else {
@@ -457,7 +466,7 @@ int main() {
 
 
 
-		if (mode == 0) {
+		if (gameMode == START_MENU) {
 
 			if(sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::Enter)){
 				startNewGame(beatmap);
@@ -480,7 +489,7 @@ int main() {
 
 
 
-		if (mode == 1 || mode == 2) {
+		if (gameMode == GAME || gameMode == COUNTDOWN) {
 
 			if(sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::D)){
 				targetCircles[0].setOutlineColor(sf::Color::Green);
@@ -529,10 +538,11 @@ int main() {
 
 
 
-		switch (mode) {
+		switch (gameMode) {
 
 
-			case 0:
+			case START_MENU:
+
 				window.draw(welcomeText);
 				break;
 
@@ -542,7 +552,7 @@ int main() {
 
 
 
-			case 1:
+			case GAME:
 
 				scoreText.setString(std::format("Score: {}", score));
 				accuracyText.setString(std::format("Accuracy: {}", std::format("{:.2f}", accuracy)));
@@ -600,7 +610,8 @@ int main() {
 
 
 
-			case 2:
+			case COUNTDOWN:
+
 				scoreText.setString(std::format("Score: {}", score));
 				accuracyText.setString(std::format("Accuracy: {}%", std::format("{:.2f}", accuracy)));
 
@@ -653,7 +664,7 @@ void startNewGame(Beatmap& beatmap){
 	score = 0;
 	accuracy = 100.0f;
 
-	mode = 2;
+	gameMode = COUNTDOWN;
 	countdownSeconds = 3;
 	countdownClock.restart();
 
