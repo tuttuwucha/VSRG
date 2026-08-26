@@ -28,18 +28,15 @@
 
 /*
 todo:
-Поменять цвет нот
-сделать чтение битмапы с файла
-сделать выход по концу песни
-сделать индикатор длительности трекаа
-
+Добавить рендер экрана счета
 */
 
 enum GameMode {
 	START_MENU,
 	GAME,
 	COUNTDOWN,
-	MENU
+	MENU,
+	SCORE
 };
 
 enum class NoteType : uint8_t {
@@ -156,6 +153,8 @@ int main() {
 
 	sf::Text welcomeText(font, "To start press ENTER", 67);
 	welcomeText.setFillColor(sf::Color::Black);
+	welcomeText.setOutlineThickness(2.f);
+	welcomeText.setOutlineColor(sf::Color::White);
 	welcomeText.setPosition({width / 2.0f, height / 2.0f});
 
 	sf::FloatRect textBounds = welcomeText.getLocalBounds();
@@ -175,10 +174,14 @@ int main() {
 
 	sf::Text scoreText(font, "Score: 0", 42);
 	scoreText.setFillColor(sf::Color::Black);
+	scoreText.setOutlineThickness(2.f);
+	scoreText.setOutlineColor(sf::Color::White);
 	scoreText.setPosition({30.f, 0.f});
 
 	sf::Text accuracyText(font, "Accuracy: 100.0%", 42);
 	accuracyText.setFillColor(sf::Color::Black);
+	accuracyText.setOutlineThickness(2.f);
+	accuracyText.setOutlineColor(sf::Color::White);
 	sf::FloatRect accuracyTextBounds = accuracyText.getLocalBounds();
 	accuracyText.setPosition({width - accuracyTextBounds.size.x - 30, 0.f});
 
@@ -293,7 +296,7 @@ int main() {
 		return -1;
 	}
 	in.close();
-	std::cout << beatmap.notes[0].timeMs << '\n';
+
 
 
 
@@ -309,6 +312,7 @@ int main() {
 
 
 
+	int lastNoteTimeInMs = beatmap.notes[beatmap.notes.size() - 1].timeMs;
 
 
 
@@ -396,7 +400,11 @@ int main() {
 		if(notesPassed > 0) accuracy = (score / float(notesPassed * 300)) * 100;
 
 
-
+		if (gameMode == GAME) {
+			if (currentSongTimeInMs >= lastNoteTimeInMs) {
+				gameMode = SCORE;
+			}
+		}
 
 		if (gameMode == COUNTDOWN) {
 			if (countdownClock.getElapsedTime().asSeconds() >= 1.0f) {
