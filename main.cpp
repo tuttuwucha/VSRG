@@ -278,6 +278,18 @@ int main() {
 
 
 
+	float progressLineThickness = 5.f;
+
+	sf::RectangleShape progressLine({0.f, progressLineThickness});
+
+	progressLine.setPosition({0.f, float(height) - progressLineThickness});
+	progressLine.setFillColor(sf::Color::White);
+
+
+
+
+
+
 
 
 
@@ -428,6 +440,7 @@ int main() {
 			if (currentSongTimeInMs >= lastNoteTimeInMs) {
 				gameMode = SCORE;
 			}
+			progressLine.setSize({float(width) * (currentSongTimeInMs / float(beatmap.music.getDuration().asMilliseconds())), float(height) - progressLineThickness});
 		}
 
 		if (gameMode == COUNTDOWN) {
@@ -524,6 +537,7 @@ int main() {
 
 
 
+
 		switch (gameMode) {
 
 
@@ -543,7 +557,7 @@ int main() {
 				scoreText.setString(std::format("Score: {}", score));
 				accuracyText.setString(std::format("Accuracy: {}%", std::format("{:.0f}", accuracy)));
 
-
+				window.draw(progressLine);
 
 				for(int i = 0; i < 4; ++i){
 					window.draw(targetCircles[i]);
