@@ -241,7 +241,7 @@ int main() {
 
 
 
-	float scrollSpeed = 1.2f;
+	float scrollSpeed = 1.f;
 	int visibilityWindowMs = 1200;
 
 
