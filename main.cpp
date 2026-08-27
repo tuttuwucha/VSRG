@@ -88,6 +88,7 @@ int countdownSeconds = 3;
 void loadFont();
 void startNewGame(Beatmap& beatmap);
 NoteType parseNoteType(const std::string& str);
+bool isThereNoMisses(Beatmap& beatmap);
 
 int main() {
 
@@ -184,6 +185,19 @@ int main() {
 	accuracyText.setOutlineColor(sf::Color::White);
 	sf::FloatRect accuracyTextBounds = accuracyText.getLocalBounds();
 	accuracyText.setPosition({width - accuracyTextBounds.size.x - 30, 0.f});
+
+
+
+
+
+	sf::Text rankingText(font, ".", 100);
+	rankingText.setFillColor(sf::Color::Black);
+	rankingText.setOutlineThickness(2.f);
+	rankingText.setOutlineColor(sf::Color::White);
+	rankingText.setPosition({width / 2.f, height / 2.f});
+	rankingText.setLineAlignment(sf::Text::LineAlignment::Center);
+
+
 
 
 
@@ -346,7 +360,14 @@ int main() {
 						case COUNTDOWN:
 							gameMode = START_MENU;
 							break;
+						case SCORE:
+							gameMode = START_MENU;
+							break;
 					}
+				}
+				if (keyPressed->scancode == sf::Keyboard::Scancode::Z) {
+					gameMode = SCORE;
+					beatmap.music.stop();
 				}
 
 
@@ -517,7 +538,7 @@ int main() {
 			case GAME:
 
 				scoreText.setString(std::format("Score: {}", score));
-				accuracyText.setString(std::format("Accuracy: {}", std::format("{:.2f}", accuracy)));
+				accuracyText.setString(std::format("Accuracy: {}%", std::format("{:.0f}", accuracy)));
 
 
 
@@ -575,7 +596,7 @@ int main() {
 			case COUNTDOWN:
 
 				scoreText.setString(std::format("Score: {}", score));
-				accuracyText.setString(std::format("Accuracy: {}%", std::format("{:.2f}", accuracy)));
+				accuracyText.setString(std::format("Accuracy: {}%", std::format("{:.0f}", accuracy)));
 
 				for(int i = 0; i < 4; ++i){
 					window.draw(targetCircles[i]);
@@ -584,6 +605,41 @@ int main() {
 				window.draw(scoreText);
 				window.draw(countdown);
 
+
+				break;
+
+
+
+
+
+			case SCORE:
+
+				if (accuracy  == 100.f) {
+					rankingText.setString(std::format("SS\n{}%", accuracy));
+				}
+				else if (accuracy >= 90.f && isThereNoMisses(beatmap)) {
+					rankingText.setString(std::format("S\n{}%", accuracy));
+				}
+				else if (accuracy >= 90.f  || (accuracy >= 80.f && isThereNoMisses(beatmap))) {
+					rankingText.setString(std::format("A\n{}%", accuracy));
+				}
+				else if (accuracy >= 80.f || (accuracy >= 70.f && isThereNoMisses(beatmap))) {
+					rankingText.setString(std::format("B\n{}%", accuracy));
+				}
+				else if (accuracy >= 60.f) {
+					rankingText.setString(std::format("C\n{}%", accuracy));
+				}
+				else {
+					rankingText.setString(std::format("D\n{}%", accuracy));
+				}
+
+				sf::FloatRect rankingTextBounds = rankingText.getLocalBounds();
+				rankingText.setOrigin({
+					rankingTextBounds.position.x + rankingTextBounds.size.x / 2.0f,
+					rankingTextBounds.position.y + rankingTextBounds.size.y / 2.0f
+				});
+
+				window.draw(rankingText);
 
 				break;
 		}
@@ -651,3 +707,21 @@ NoteType parseNoteType(const std::string& str) {
 
 	return NoteType::Tap;
 }
+
+
+
+
+
+
+
+bool isThereNoMisses(Beatmap& beatmap){
+	for (auto note : beatmap.notes) {
+		if (note.isMissed) {
+			return false;
+		}
+	}
+	return true;
+}
+
+
+
