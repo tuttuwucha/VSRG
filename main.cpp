@@ -206,14 +206,17 @@ int main() {
 
 	sf::VertexArray backgroundGradient(sf::PrimitiveType::Triangles, 6);
 
+	sf::Color backgroundTopColor = sf::Color(125, 125, 255);
+	sf::Color backgroundBottomColor = sf::Color(8, 35, 176);
 
-	backgroundGradient[0] = sf::Vertex({0.f, 0.f}, sf::Color(125, 125, 255));
-	backgroundGradient[1] = sf::Vertex({500.f, 0.f}, sf::Color(125, 125, 255));
-	backgroundGradient[2] = sf::Vertex({500.f, 800.f}, sf::Color(8, 35, 176));
 
-	backgroundGradient[3] = sf::Vertex({0.f, 0.f}, sf::Color(125, 125, 255));
-	backgroundGradient[4] = sf::Vertex({500.f, 800.f}, sf::Color(8, 35, 176));
-	backgroundGradient[5] = sf::Vertex({0.f, 800.f}, sf::Color(8, 35, 176));
+	backgroundGradient[0] = sf::Vertex({0.f, 0.f}, backgroundTopColor);
+	backgroundGradient[1] = sf::Vertex({float(width), 0.f}, backgroundTopColor);
+	backgroundGradient[2] = sf::Vertex({float(width), float(height)}, backgroundBottomColor);
+
+	backgroundGradient[3] = sf::Vertex({0.f, 0.f}, backgroundTopColor);
+	backgroundGradient[4] = sf::Vertex({float(width), float(height)}, backgroundBottomColor);
+	backgroundGradient[5] = sf::Vertex({0.f, float(height)}, backgroundBottomColor);
 
 
 
