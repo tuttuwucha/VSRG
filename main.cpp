@@ -26,10 +26,7 @@
 #include <sstream>
 
 
-/*
-todo:
-Добавить рендер экрана счета
-*/
+
 
 enum GameMode {
 	START_MENU,
@@ -225,7 +222,7 @@ int main() {
 
 
 
-	float columnPositions[4] = { 92.f, 201.f, 307.f, 415.f };
+	float columnPositions[4] = { (width / 2.f) - 150, (width / 2.f) - 50, (width / 2.f) + 50, (width / 2.f) + 150 };
 
 
 
@@ -321,7 +318,7 @@ int main() {
 		}
 	}
 	else {
-		std::cerr << "Can't read beatmap file!\n";
+		std::cerr << "Can't read beatmap file\n";
 		return -1;
 	}
 	in.close();
