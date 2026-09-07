@@ -10,6 +10,7 @@
 #include <SFML/Graphics/Vertex.hpp>
 #include <SFML/Graphics/VertexArray.hpp>
 #include <SFML/System/Clock.hpp>
+#include <SFML/System/Time.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <cstdint>
 #include <cstdio>
@@ -26,7 +27,12 @@
 #include <sstream>
 
 
-
+enum hitJudgements {
+	MISS,
+	BAD,
+	GOOD,
+	PERFECT
+};
 
 enum GameMode {
 	START_MENU,
@@ -82,10 +88,15 @@ int countdownSeconds = 3;
 
 
 
+
+
+
+
 void loadFont();
 void startNewGame(Beatmap& beatmap);
 NoteType parseNoteType(const std::string& str);
 bool isThereNoMisses(Beatmap& beatmap);
+void setTextOriginToCenter(sf::Text& text);
 
 int main() {
 
@@ -115,7 +126,7 @@ int main() {
 		std::cerr << "Error loading music!\n";
 		return -1;
 	}
-	beatmap.music.setVolume(5.f);
+	beatmap.music.setVolume(0.f);
 
 
 
@@ -203,8 +214,8 @@ int main() {
 
 	sf::VertexArray backgroundGradient(sf::PrimitiveType::Triangles, 6);
 
-	sf::Color backgroundTopColor = sf::Color(125, 125, 255);
-	sf::Color backgroundBottomColor = sf::Color(8, 35, 176);
+	sf::Color backgroundTopColor = sf::Color(255, 255, 255);
+	sf::Color backgroundBottomColor = sf::Color(50, 50, 50);
 
 
 	backgroundGradient[0] = sf::Vertex({0.f, 0.f}, backgroundTopColor);
@@ -248,6 +259,21 @@ int main() {
 
 
 
+
+
+
+	sf::Clock clockTimeFromLastHit;
+	float timeFromLastHit;
+
+	int lastHitJudgement = -1;
+
+
+
+	float timeForJudgementTextToDissapear = 2000.f;
+
+	float minHitJudgementTextSize = 90;
+	float hitJudgementTextSizeAddition = 50;
+	sf::Text hitJudgementText(font, "NIGGER", minHitJudgementTextSize);
 
 
 
@@ -405,17 +431,20 @@ int main() {
 									if (timeDiff <= PERFECT_WINDOW) {
 										note.isHit = true;
 										score += 300;
-										std::cout << "Perfect" << '\n';
+										lastHitJudgement = PERFECT;
+										clockTimeFromLastHit.reset();
 									}
 									else if (timeDiff <= GOOD_WINDOW) {
 										note.isHit = true;
 										score += 200;
-										std::cout << "good" << '\n';
+										lastHitJudgement = GOOD;
+										clockTimeFromLastHit.reset();
 									}
 									else {
 										note.isHit = true;
 										score += 50;
-										std::cout << "bad" << '\n';
+										lastHitJudgement = BAD;
+										clockTimeFromLastHit.reset();
 									}
 									++notesPassed;
 									break;
@@ -430,6 +459,9 @@ int main() {
 
 
 
+		timeFromLastHit = clockTimeFromLastHit.getElapsedTime().asMilliseconds();
+
+
 		if(notesPassed > 0) accuracy = (score / float(notesPassed * 300)) * 100;
 
 
@@ -438,6 +470,53 @@ int main() {
 				gameMode = SCORE;
 			}
 			progressLine.setSize({float(width) * (currentSongTimeInMs / float(beatmap.music.getDuration().asMilliseconds())), float(height) - progressLineThickness});
+
+
+
+			if (timeFromLastHit <= timeForJudgementTextToDissapear) {
+
+
+				float calculatedSize = hitJudgementTextSizeAddition * (timeFromLastHit / timeForJudgementTextToDissapear);
+				if (calculatedSize < minHitJudgementTextSize) {
+					calculatedSize = minHitJudgementTextSize;
+				}
+
+				switch (lastHitJudgement) {
+					case MISS:
+						hitJudgementText.setString("Miss");
+						hitJudgementText.setCharacterSize(calculatedSize);
+						hitJudgementText.setFillColor(sf::Color::Red);
+						setTextOriginToCenter(hitJudgementText);
+						hitJudgementText.setPosition({width / 2.f, height / 2.f});
+						break;
+					case BAD:
+						hitJudgementText.setString("Bad");
+						hitJudgementText.setCharacterSize(calculatedSize);
+						hitJudgementText.setFillColor(sf::Color(255, 127, 0));
+						setTextOriginToCenter(hitJudgementText);
+						hitJudgementText.setPosition({width / 2.f, height / 2.f});
+						break;
+					case GOOD:
+						hitJudgementText.setString("Good");
+						hitJudgementText.setCharacterSize(calculatedSize);
+						hitJudgementText.setFillColor(sf::Color(119, 179, 254));
+						setTextOriginToCenter(hitJudgementText);
+						hitJudgementText.setPosition({width / 2.f, height / 2.f});
+						break;
+					case PERFECT:
+						hitJudgementText.setString("Perfect");
+						hitJudgementText.setCharacterSize(calculatedSize);
+						hitJudgementText.setFillColor(sf::Color(30, 116, 253));
+						setTextOriginToCenter(hitJudgementText);
+						hitJudgementText.setPosition({width / 2.f, height / 2.f});
+						break;
+
+				}
+			}
+
+
+
+
 		}
 
 		if (gameMode == COUNTDOWN) {
@@ -478,29 +557,32 @@ int main() {
 
 
 
-
+		sf::Color targetCircleBaseColor = sf::Color(15, 15, 15, 200);
 		for (int i = 0; i < 4; ++i) {
-			targetCircles[i].setOutlineColor(sf::Color::Black);
+			targetCircles[i].setOutlineColor(targetCircleBaseColor);
 		}
 
 
 
 		if (gameMode == GAME || gameMode == COUNTDOWN) {
 
+			sf::Color targetCircleTapColor = sf::Color(229, 229, 229);
+
 			if(sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::D)){
-				targetCircles[0].setOutlineColor(sf::Color::Green);
+				targetCircles[0].setOutlineColor(targetCircleTapColor);
 			}
 			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::F)) {
-				targetCircles[1].setOutlineColor(sf::Color::Green);
+				targetCircles[1].setOutlineColor(targetCircleTapColor);
 			}
 			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::J)) {
-				targetCircles[2].setOutlineColor(sf::Color::Green);
+				targetCircles[2].setOutlineColor(targetCircleTapColor);
 			}
 			if (sf::Keyboard::isKeyPressed(sf::Keyboard::Scan::K)) {
-				targetCircles[3].setOutlineColor(sf::Color::Green);
+				targetCircles[3].setOutlineColor(targetCircleTapColor);
 			}
 
 		}
+
 
 
 
@@ -554,6 +636,9 @@ int main() {
 				scoreText.setString(std::format("Score: {}", score));
 				accuracyText.setString(std::format("Accuracy: {}%", std::format("{:.0f}", accuracy)));
 
+				window.draw(hitJudgementText);
+
+
 				window.draw(progressLine);
 
 				for(int i = 0; i < 4; ++i){
@@ -583,7 +668,8 @@ int main() {
 						if (timeRemaining < -MISS_WINDOW) {
 							note.isMissed = true;
 							++notesPassed;
-							std::cout << "Miss" << '\n';
+							lastHitJudgement = MISS;
+							clockTimeFromLastHit.reset();
 						}
 					}
 
@@ -737,5 +823,14 @@ bool isThereNoMisses(Beatmap& beatmap){
 	return true;
 }
 
-
+void setTextOriginToCenter(sf::Text& text){
+	if (text.getCharacterSize() == 0) {
+		return;
+	}
+	sf::FloatRect textBounds = text.getLocalBounds();
+	text.setOrigin({
+		textBounds.position.x + textBounds.size.x / 2.0f,
+		textBounds.position.y + textBounds.size.y / 2.0f
+	});
+}
 
