@@ -64,7 +64,7 @@ struct Beatmap {
 
 
 
-sf::Font font;
+
 
 
 
@@ -89,7 +89,8 @@ int countdownSeconds = 3;
 
 
 
-
+sf::Font fontRegular;
+sf::Font fontBold;
 
 
 void loadFont();
@@ -134,14 +135,14 @@ int main() {
 
 	loadFont();
 
+	float shadowOffset = 2.f;
 
 
 
 
 
 
-
-	sf::Text countdown(font, "3", 100);
+	sf::Text countdown(fontRegular, "3", 75);
 	countdown.setFillColor(sf::Color::Black);
 	countdown.setPosition({width / 2.0f, height / 2.0f});
 
@@ -160,7 +161,7 @@ int main() {
 
 
 
-	sf::Text welcomeText(font, "To start press ENTER", 67);
+	sf::Text welcomeText(fontRegular, "To start press ENTER", 67);
 	welcomeText.setFillColor(sf::Color::Black);
 	welcomeText.setOutlineThickness(2.f);
 	welcomeText.setOutlineColor(sf::Color::White);
@@ -181,24 +182,30 @@ int main() {
 
 
 
-	sf::Text scoreText(font, "Score: 0", 42);
-	scoreText.setFillColor(sf::Color::Black);
-	scoreText.setOutlineThickness(2.f);
-	scoreText.setOutlineColor(sf::Color::White);
+	sf::Text scoreText(fontRegular, "Score: 0", 30);
+	scoreText.setFillColor(sf::Color::White);
 	scoreText.setPosition({30.f, 0.f});
 
-	sf::Text accuracyText(font, "Accuracy: 100.0%", 42);
-	accuracyText.setFillColor(sf::Color::Black);
-	accuracyText.setOutlineThickness(2.f);
-	accuracyText.setOutlineColor(sf::Color::White);
+	sf::Text scoreTextShadow(fontRegular, "Score: 0", 30);
+	scoreTextShadow.setFillColor(sf::Color(0, 0, 0, 128));
+	scoreTextShadow.setPosition({30.f + shadowOffset, 0.f + shadowOffset});
+
+
+
+	sf::Text accuracyText(fontRegular, "Accuracy: 100%", 30);
+	accuracyText.setFillColor(sf::Color::White);
 	sf::FloatRect accuracyTextBounds = accuracyText.getLocalBounds();
 	accuracyText.setPosition({width - accuracyTextBounds.size.x - 30, 0.f});
 
+	sf::Text accuracyTextShadow(fontRegular, "Accuracy: 100%", 30);
+	accuracyTextShadow.setFillColor(sf::Color(0, 0, 0, 128));
+	accuracyTextShadow.setPosition({width - accuracyTextBounds.size.x - 30 + shadowOffset, 0.f + shadowOffset});
 
 
 
 
-	sf::Text rankingText(font, ".", 100);
+
+	sf::Text rankingText(fontRegular, ".", 100);
 	rankingText.setFillColor(sf::Color::Black);
 	rankingText.setOutlineThickness(2.f);
 	rankingText.setOutlineColor(sf::Color::White);
@@ -214,8 +221,8 @@ int main() {
 
 	sf::VertexArray backgroundGradient(sf::PrimitiveType::Triangles, 6);
 
-	sf::Color backgroundTopColor = sf::Color(255, 255, 255);
-	sf::Color backgroundBottomColor = sf::Color(50, 50, 50);
+	sf::Color backgroundTopColor = sf::Color(128, 128, 128);
+	sf::Color backgroundBottomColor = sf::Color(50, 100, 50);
 
 
 	backgroundGradient[0] = sf::Vertex({0.f, 0.f}, backgroundTopColor);
@@ -269,11 +276,18 @@ int main() {
 
 
 
-	float timeForJudgementTextToDissapear = 2000.f;
+	float timeForJudgementTextToDissapear = 500.f;
 
-	float minHitJudgementTextSize = 90;
-	float hitJudgementTextSizeAddition = 50;
-	sf::Text hitJudgementText(font, "NIGGER", minHitJudgementTextSize);
+	float minHitJudgementTextSize = 50;
+	float hitJudgementTextSizeAddition = 20;
+	sf::Text hitJudgementText(fontBold, " ", minHitJudgementTextSize);
+	hitJudgementText.setOutlineThickness(2.f);
+	hitJudgementText.setOutlineColor(sf::Color(0, 0, 0));
+
+	sf::Text hitJudgementTextShadow(fontBold, " ", minHitJudgementTextSize);
+	hitJudgementTextShadow.setFillColor(sf::Color(0, 0, 0, 128));
+	hitJudgementTextShadow.setOutlineThickness(2.f);
+	hitJudgementTextShadow.setOutlineColor(sf::Color(0, 0, 0, 128));
 
 
 
@@ -432,19 +446,19 @@ int main() {
 										note.isHit = true;
 										score += 300;
 										lastHitJudgement = PERFECT;
-										clockTimeFromLastHit.reset();
+										clockTimeFromLastHit.restart();
 									}
 									else if (timeDiff <= GOOD_WINDOW) {
 										note.isHit = true;
 										score += 200;
 										lastHitJudgement = GOOD;
-										clockTimeFromLastHit.reset();
+										clockTimeFromLastHit.restart();
 									}
 									else {
 										note.isHit = true;
 										score += 50;
 										lastHitJudgement = BAD;
-										clockTimeFromLastHit.reset();
+										clockTimeFromLastHit.restart();
 									}
 									++notesPassed;
 									break;
@@ -476,7 +490,7 @@ int main() {
 			if (timeFromLastHit <= timeForJudgementTextToDissapear) {
 
 
-				float calculatedSize = hitJudgementTextSizeAddition * (timeFromLastHit / timeForJudgementTextToDissapear);
+				float calculatedSize = minHitJudgementTextSize + hitJudgementTextSizeAddition * (timeFromLastHit / timeForJudgementTextToDissapear);
 				if (calculatedSize < minHitJudgementTextSize) {
 					calculatedSize = minHitJudgementTextSize;
 				}
@@ -492,21 +506,21 @@ int main() {
 					case BAD:
 						hitJudgementText.setString("Bad");
 						hitJudgementText.setCharacterSize(calculatedSize);
-						hitJudgementText.setFillColor(sf::Color(255, 127, 0));
+						hitJudgementText.setFillColor(sf::Color(255, 127, 0, 255 * (1 - (timeFromLastHit / timeForJudgementTextToDissapear))));
 						setTextOriginToCenter(hitJudgementText);
 						hitJudgementText.setPosition({width / 2.f, height / 2.f});
 						break;
 					case GOOD:
 						hitJudgementText.setString("Good");
 						hitJudgementText.setCharacterSize(calculatedSize);
-						hitJudgementText.setFillColor(sf::Color(119, 179, 254));
+						hitJudgementText.setFillColor(sf::Color(119, 179, 254, 255 * (1 - (timeFromLastHit / timeForJudgementTextToDissapear))));
 						setTextOriginToCenter(hitJudgementText);
 						hitJudgementText.setPosition({width / 2.f, height / 2.f});
 						break;
 					case PERFECT:
 						hitJudgementText.setString("Perfect");
 						hitJudgementText.setCharacterSize(calculatedSize);
-						hitJudgementText.setFillColor(sf::Color(30, 116, 253));
+						hitJudgementText.setFillColor(sf::Color(30, 116, 253, 255 * (1 - (timeFromLastHit / timeForJudgementTextToDissapear))));
 						setTextOriginToCenter(hitJudgementText);
 						hitJudgementText.setPosition({width / 2.f, height / 2.f});
 						break;
@@ -634,9 +648,26 @@ int main() {
 			case GAME:
 
 				scoreText.setString(std::format("Score: {}", score));
-				accuracyText.setString(std::format("Accuracy: {}%", std::format("{:.0f}", accuracy)));
+				scoreTextShadow.setString(std::format("Score: {}", score));
 
-				window.draw(hitJudgementText);
+				accuracyText.setString(std::format("Accuracy: {}%", std::format("{:.0f}", accuracy)));
+				accuracyTextShadow.setString(std::format("Accuracy: {}%", std::format("{:.0f}", accuracy)));
+
+
+				if (timeFromLastHit <= timeForJudgementTextToDissapear) {
+
+					hitJudgementTextShadow.setCharacterSize(hitJudgementText.getCharacterSize());
+					hitJudgementTextShadow.setString(hitJudgementText.getString());
+					hitJudgementTextShadow.setPosition({hitJudgementText.getPosition().x + shadowOffset, hitJudgementText.getPosition().y + shadowOffset});
+					hitJudgementTextShadow.setOrigin(hitJudgementText.getOrigin());
+					hitJudgementTextShadow.setFillColor(sf::Color(0, 0, 0, hitJudgementText.getFillColor().a));
+					hitJudgementTextShadow.setOutlineColor(sf::Color(0, 0, 0, hitJudgementText.getFillColor().a));
+					hitJudgementText.setOutlineColor(sf::Color(0, 0, 0, hitJudgementText.getFillColor().a));
+					window.draw(hitJudgementTextShadow);
+					window.draw(hitJudgementText);
+
+				}
+
 
 
 				window.draw(progressLine);
@@ -669,7 +700,7 @@ int main() {
 							note.isMissed = true;
 							++notesPassed;
 							lastHitJudgement = MISS;
-							clockTimeFromLastHit.reset();
+							clockTimeFromLastHit.restart();
 						}
 					}
 
@@ -680,8 +711,11 @@ int main() {
 
 
 
-
+				window.draw(accuracyTextShadow);
 				window.draw(accuracyText);
+
+
+				window.draw(scoreTextShadow);
 				window.draw(scoreText);
 
 				break;
@@ -701,8 +735,12 @@ int main() {
 				for(int i = 0; i < 4; ++i){
 					window.draw(targetCircles[i]);
 				}
+				window.draw(accuracyTextShadow);
 				window.draw(accuracyText);
+
+				window.draw(scoreTextShadow);
 				window.draw(scoreText);
+
 				window.draw(countdown);
 
 
@@ -766,8 +804,12 @@ int main() {
 
 
 void loadFont(){
-	if (!font.openFromFile("Assets/Font/PB Pixel.ttf")) {
-		std::cerr << "Error loading font!\n";
+	if (!fontRegular.openFromFile("Assets/Font/Ubuntu/Ubuntu-Regular.ttf")) {
+		std::cerr << "Error loading regular font!\n";
+		std::exit(EXIT_FAILURE);
+	}
+	if (!fontBold.openFromFile("Assets/Font/Ubuntu/Ubuntu-Bold.ttf")) {
+		std::cerr << "Error loading bold font!\n";
 		std::exit(EXIT_FAILURE);
 	}
 }
