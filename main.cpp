@@ -122,12 +122,12 @@ int main() {
 
 
 
-	if (!beatmap.music.openFromFile("Assets/Music/RN - Joey Valence & Brae.mp3"))
+	if (!beatmap.music.openFromFile("Assets/Music/Måneskin L'altra Dimensione.mp3"))
 	{
 		std::cerr << "Error loading music!\n";
 		return -1;
 	}
-	beatmap.music.setVolume(0.f);
+	beatmap.music.setVolume(5.f);
 
 
 
@@ -161,7 +161,7 @@ int main() {
 
 
 
-	sf::Text welcomeText(fontRegular, "To start press ENTER", 67);
+	sf::Text welcomeText(fontRegular, "To start press ENTER", 42);
 	welcomeText.setFillColor(sf::Color::Black);
 	welcomeText.setOutlineThickness(2.f);
 	welcomeText.setOutlineColor(sf::Color::White);
@@ -184,22 +184,22 @@ int main() {
 
 	sf::Text scoreText(fontRegular, "Score: 0", 30);
 	scoreText.setFillColor(sf::Color::White);
-	scoreText.setPosition({30.f, 0.f});
+	scoreText.setPosition({30.f, 15.f});
 
 	sf::Text scoreTextShadow(fontRegular, "Score: 0", 30);
 	scoreTextShadow.setFillColor(sf::Color(0, 0, 0, 128));
-	scoreTextShadow.setPosition({30.f + shadowOffset, 0.f + shadowOffset});
+	scoreTextShadow.setPosition({scoreText.getPosition().x + shadowOffset, scoreText.getPosition().y + shadowOffset});
 
 
 
 	sf::Text accuracyText(fontRegular, "Accuracy: 100%", 30);
 	accuracyText.setFillColor(sf::Color::White);
 	sf::FloatRect accuracyTextBounds = accuracyText.getLocalBounds();
-	accuracyText.setPosition({width - accuracyTextBounds.size.x - 30, 0.f});
+	accuracyText.setPosition({width - accuracyTextBounds.size.x - 30, 15.f});
 
 	sf::Text accuracyTextShadow(fontRegular, "Accuracy: 100%", 30);
 	accuracyTextShadow.setFillColor(sf::Color(0, 0, 0, 128));
-	accuracyTextShadow.setPosition({width - accuracyTextBounds.size.x - 30 + shadowOffset, 0.f + shadowOffset});
+	accuracyTextShadow.setPosition({accuracyText.getPosition().x + shadowOffset, accuracyText.getPosition().y + shadowOffset});
 
 
 
@@ -333,7 +333,7 @@ int main() {
 
 	std::string line;
 
-	std::ifstream in("beatmaps/map.txt");
+	std::ifstream in("beatmaps/Måneskin L'altra Dimensione.txt");
 	if(in.is_open()){
 
 		while (std::getline(in, line)) {
