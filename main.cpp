@@ -1,4 +1,6 @@
 #include <SFML/Audio/Music.hpp>
+#include <SFML/Audio/Sound.hpp>
+#include <SFML/Audio/SoundBuffer.hpp>
 #include <SFML/Graphics.hpp>
 #include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/Color.hpp>
@@ -70,7 +72,7 @@ struct Beatmap {
 
 int score = 0;
 float accuracy = 100.0f;
-int notesTotal = 0;
+
 int notesPassed = 0;
 
 enum GameMode gameMode = START_MENU;
@@ -363,18 +365,22 @@ int main() {
 	}
 	in.close();
 
-
-
-
-
-
-
-
-
-
-	for (auto& note : beatmap.notes) {
-		++notesTotal;
+	sf::SoundBuffer hitSoundBuffer;
+	if (!hitSoundBuffer.loadFromFile("Assets/Sounds/osu-hit-sound.mp3")) {
+		std::cerr << "Failed to load hit sound!\n";
+		return -1;
 	}
+
+	sf::Sound hitSound(hitSoundBuffer);
+	hitSound.setVolume(5.f);
+
+
+
+
+
+
+
+
 
 
 
@@ -447,18 +453,21 @@ int main() {
 										score += 300;
 										lastHitJudgement = PERFECT;
 										clockTimeFromLastHit.restart();
+										hitSound.play();
 									}
 									else if (timeDiff <= GOOD_WINDOW) {
 										note.isHit = true;
 										score += 200;
 										lastHitJudgement = GOOD;
 										clockTimeFromLastHit.restart();
+										hitSound.play();
 									}
 									else {
 										note.isHit = true;
 										score += 50;
 										lastHitJudgement = BAD;
 										clockTimeFromLastHit.restart();
+										hitSound.play();
 									}
 									++notesPassed;
 									break;
