@@ -14,6 +14,7 @@
 #include <SFML/System/Clock.hpp>
 #include <SFML/System/Time.hpp>
 #include <SFML/System/Vector2.hpp>
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -29,7 +30,7 @@
 #include <sstream>
 
 
-enum hitJudgements {
+enum class HitJudgements : uint8_t {
 	MISS,
 	BAD,
 	GOOD,
@@ -52,7 +53,6 @@ enum class NoteType : uint8_t {
 struct Note {
 	int32_t timeMs;
 	uint8_t column;
-	NoteType type;
 	int32_t durationMs;
 	bool isHit = false;
 	bool isMissed = false;
@@ -124,7 +124,7 @@ int main() {
 
 
 
-	if (!beatmap.music.openFromFile("Assets/Music/Måneskin L'altra Dimensione.mp3"))
+	if (!beatmap.music.openFromFile("Assets/Music/RN - Joey Valence & Brae.mp3"))
 	{
 		std::cerr << "Error loading music!\n";
 		return -1;
@@ -274,7 +274,7 @@ int main() {
 	sf::Clock clockTimeFromLastHit;
 	float timeFromLastHit;
 
-	int lastHitJudgement = -1;
+	HitJudgements lastHitJudgement;
 
 
 
@@ -335,7 +335,7 @@ int main() {
 
 	std::string line;
 
-	std::ifstream in("beatmaps/Måneskin L'altra Dimensione.txt");
+	std::ifstream in("beatmaps/RN - Joey Valence & Brae.txt");
 	if(in.is_open()){
 
 		while (std::getline(in, line)) {
@@ -347,12 +347,11 @@ int main() {
 			std::string tempNoteType;
 			int32_t tempNoteDuration;
 
-			if(ss >> tempNoteTimeMs >> tempNoteColumn >> tempNoteType >> tempNoteDuration){
+			if(ss >> tempNoteTimeMs >> tempNoteColumn >> tempNoteDuration){
 
 				Note tempNote;
 				tempNote.timeMs = tempNoteTimeMs;
 				tempNote.column = tempNoteColumn;
-				tempNote.type = parseNoteType(tempNoteType);
 				tempNote.durationMs = tempNoteDuration;
 
 				beatmap.notes.push_back(tempNote);
@@ -451,21 +450,21 @@ int main() {
 									if (timeDiff <= PERFECT_WINDOW) {
 										note.isHit = true;
 										score += 300;
-										lastHitJudgement = PERFECT;
+										lastHitJudgement = HitJudgements::PERFECT;
 										clockTimeFromLastHit.restart();
 										hitSound.play();
 									}
 									else if (timeDiff <= GOOD_WINDOW) {
 										note.isHit = true;
 										score += 200;
-										lastHitJudgement = GOOD;
+										lastHitJudgement = HitJudgements::GOOD;
 										clockTimeFromLastHit.restart();
 										hitSound.play();
 									}
 									else {
 										note.isHit = true;
 										score += 50;
-										lastHitJudgement = BAD;
+										lastHitJudgement = HitJudgements::BAD;
 										clockTimeFromLastHit.restart();
 										hitSound.play();
 									}
@@ -505,28 +504,28 @@ int main() {
 				}
 
 				switch (lastHitJudgement) {
-					case MISS:
+					case HitJudgements::MISS:
 						hitJudgementText.setString("Miss");
 						hitJudgementText.setCharacterSize(calculatedSize);
 						hitJudgementText.setFillColor(sf::Color::Red);
 						setTextOriginToCenter(hitJudgementText);
 						hitJudgementText.setPosition({width / 2.f, height / 2.f});
 						break;
-					case BAD:
+					case HitJudgements::BAD:
 						hitJudgementText.setString("Bad");
 						hitJudgementText.setCharacterSize(calculatedSize);
 						hitJudgementText.setFillColor(sf::Color(255, 127, 0, 255 * (1 - (timeFromLastHit / timeForJudgementTextToDissapear))));
 						setTextOriginToCenter(hitJudgementText);
 						hitJudgementText.setPosition({width / 2.f, height / 2.f});
 						break;
-					case GOOD:
+					case HitJudgements::GOOD:
 						hitJudgementText.setString("Good");
 						hitJudgementText.setCharacterSize(calculatedSize);
 						hitJudgementText.setFillColor(sf::Color(119, 179, 254, 255 * (1 - (timeFromLastHit / timeForJudgementTextToDissapear))));
 						setTextOriginToCenter(hitJudgementText);
 						hitJudgementText.setPosition({width / 2.f, height / 2.f});
 						break;
-					case PERFECT:
+					case HitJudgements::PERFECT:
 						hitJudgementText.setString("Perfect");
 						hitJudgementText.setCharacterSize(calculatedSize);
 						hitJudgementText.setFillColor(sf::Color(30, 116, 253, 255 * (1 - (timeFromLastHit / timeForJudgementTextToDissapear))));
@@ -708,7 +707,7 @@ int main() {
 						if (timeRemaining < -MISS_WINDOW) {
 							note.isMissed = true;
 							++notesPassed;
-							lastHitJudgement = MISS;
+							lastHitJudgement = HitJudgements::MISS;
 							clockTimeFromLastHit.restart();
 						}
 					}
@@ -839,26 +838,6 @@ void startNewGame(Beatmap& beatmap){
 
 
 }
-
-
-
-
-
-
-NoteType parseNoteType(const std::string& str) {
-
-	if (str == "NoteType::Tap") {
-		return NoteType::Tap;
-	}
-
-	if (str == "NoteType::Hold") {
-		return NoteType::Hold;
-	}
-
-
-	return NoteType::Tap;
-}
-
 
 
 
